@@ -49,10 +49,19 @@ public class ActiveDirectoryEndpoint {
     @ResponsePayload
     public UpdateUserResponse updateUser(@RequestPayload UpdateUserRequest request) {
         UpdateUserResponse response = new UpdateUserResponse();
-        boolean success = Boolean.parseBoolean(adService.updateUser(request.getUser()));
-        response.setStatus(success ? "User updated successfully." : "Failed to update user.");
+
+        try {
+            // Call the updated service method for updating user
+            adService.updateUser(request.getUser());
+            response.setStatus("User updated successfully.");
+        } catch (Exception e) {
+            e.printStackTrace(); // Log the error for debugging
+            response.setStatus("Failed to update user: " + e.getMessage());
+        }
+
         return response;
     }
+
 
     @PayloadRoot(namespace = NAMESPACE_URI, localPart = "deleteUserRequest")
     @ResponsePayload

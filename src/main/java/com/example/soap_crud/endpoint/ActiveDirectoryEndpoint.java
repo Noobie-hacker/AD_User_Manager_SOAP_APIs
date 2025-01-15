@@ -94,10 +94,18 @@ public class ActiveDirectoryEndpoint {
     @ResponsePayload
     public GetAllGroupsResponse getAllGroups(@RequestPayload GetAllGroupsRequest request) {
         GetAllGroupsResponse response = new GetAllGroupsResponse();
-        List<String> groups = adService.getAllGroups();
-        response.getGroups().addAll(groups);
+        List<ActiveDirectoryService.GroupInfo> groups = adService.getAllGroups();
+
+        for (ActiveDirectoryService.GroupInfo group : groups) {
+            GetAllGroupsResponse.Group groupElement = new GetAllGroupsResponse.Group();
+            groupElement.setGroupName(group.getGroupName());
+            groupElement.setGroupDn(group.getGroupDn());
+            response.getGroups().add(groupElement);
+        }
+
         return response;
     }
+
 
     @PayloadRoot(namespace = NAMESPACE_URI, localPart = "addUserToGroupsRequest")
     @ResponsePayload
