@@ -54,8 +54,7 @@ import jakarta.xml.bind.annotation.XmlType;
     "lastName",
     "email",
     "memberOf",
-    "password",
-    "userAccountControl"
+    "password"
 })
 public class User {
 

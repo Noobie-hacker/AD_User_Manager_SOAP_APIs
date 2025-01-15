@@ -163,6 +163,7 @@ public class ActiveDirectoryService {
             user.setSamAccountName(getAttributeValue(attrs, "sAMAccountName"));
             user.setDistinguishedName(getAttributeValue(attrs, "distinguishedName"));
             user.setUserPrincipalName(getAttributeValue(attrs, "userPrincipalName"));
+            user.setuserAccountControl(getAttributeValue(attrs, "userAccountControl"));
 
             // Convert objectGUID to UUID
             byte[] objectGUIDBytes = attrs.get("objectGUID") != null ? (byte[]) attrs.get("objectGUID").get() : null;
