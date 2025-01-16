@@ -51,8 +51,17 @@ public class ActiveDirectoryEndpoint {
         UpdateUserResponse response = new UpdateUserResponse();
 
         try {
+            // Create User object from request data
+            User user = new User();
+            user.setCn(request.getCn());
+            user.setFirstName(request.getFirstName());
+            user.setLastName(request.getLastName());
+            user.setEmail(request.getEmail());
+
             // Call the updated service method for updating user
-            adService.updateUser(request.getUser());
+            adService.updateUser(user);
+
+            // Set the status message in the response
             response.setStatus("User updated successfully.");
         } catch (Exception e) {
             e.printStackTrace(); // Log the error for debugging
@@ -61,6 +70,10 @@ public class ActiveDirectoryEndpoint {
 
         return response;
     }
+
+
+
+
 
 
     @PayloadRoot(namespace = NAMESPACE_URI, localPart = "deleteUserRequest")
@@ -100,11 +113,12 @@ public class ActiveDirectoryEndpoint {
             GetAllGroupsResponse.Group groupElement = new GetAllGroupsResponse.Group();
             groupElement.setGroupName(group.getGroupName());
             groupElement.setGroupDn(group.getGroupDn());
-            response.getGroups().add(groupElement);
+            response.getGroup().add(groupElement);
         }
 
         return response;
     }
+
 
 
     @PayloadRoot(namespace = NAMESPACE_URI, localPart = "addUserToGroupsRequest")

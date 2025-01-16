@@ -51,10 +51,14 @@
         </xs:complexType>
     </xs:element>
 
+    <!-- Update User Elements -->
     <xs:element name="updateUserRequest">
         <xs:complexType>
             <xs:sequence>
-                <xs:element name="user" type="tns:user" />
+                <xs:element name="cn" type="xs:string" />
+                <xs:element name="firstName" type="xs:string" />
+                <xs:element name="lastName" type="xs:string" />
+                <xs:element name="email" type="xs:string" />
             </xs:sequence>
         </xs:complexType>
     </xs:element>
@@ -115,14 +119,21 @@
         </xs:complexType>
     </xs:element>
 
+    <!-- Request and Response Elements for Get All Groups -->
     <xs:element name="getAllGroupsRequest">
         <xs:complexType />
     </xs:element>
-
     <xs:element name="getAllGroupsResponse">
         <xs:complexType>
             <xs:sequence>
-                <xs:element name="groups" type="xs:string" maxOccurs="unbounded" />
+                <xs:element name="Group" maxOccurs="unbounded">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="GroupName" type="xs:string" />
+                            <xs:element name="GroupDn" type="xs:string" />
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
             </xs:sequence>
         </xs:complexType>
     </xs:element>
@@ -173,7 +184,9 @@
             <xs:element name="firstName" type="xs:string" />
             <xs:element name="lastName" type="xs:string" />
             <xs:element name="email" type="xs:string" />
+            <xs:element name="password" type="xs:string" />
             <xs:element name="memberOf" type="xs:string" maxOccurs="unbounded" />
+            <xs:element name="userAccountControl" type="xs:string" />
         </xs:sequence>
     </xs:complexType>
 

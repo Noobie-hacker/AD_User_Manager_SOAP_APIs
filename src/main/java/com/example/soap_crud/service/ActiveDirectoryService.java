@@ -65,19 +65,36 @@ public class ActiveDirectoryService {
 
 
 
-    public void updateUser(User user) {
+    public User updateUser(User user) {
         String userDn = "cn=" + user.getCn() + ",cn=Users,dc=mylab,dc=local";
 
-        // Attributes to update
-        ModificationItem[] mods = {
-                new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("givenName", user.getFirstName())),
-                new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("sn", user.getLastName())),
-                new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("mail", user.getEmail())),
-                new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("userPrincipalName", user.getUserPrincipalName()))
-        };
+        List<ModificationItem> modsList = new ArrayList<>();
 
-        ldapTemplate.modifyAttributes(userDn, mods);
+        // Add modifications only for non-null fields
+        if (user.getFirstName() != null) {
+            modsList.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("givenName", user.getFirstName())));
+        }
+        if (user.getLastName() != null) {
+            modsList.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("sn", user.getLastName())));
+        }
+        if (user.getEmail() != null) {
+            modsList.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("mail", user.getEmail())));
+        }
+
+        // Check if there's any attribute to modify
+        if (!modsList.isEmpty()) {
+            ModificationItem[] mods = modsList.toArray(new ModificationItem[0]);
+            ldapTemplate.modifyAttributes(userDn, mods);
+        } else {
+            System.out.println("No attributes provided for update. Existing attributes remain unchanged.");
+        }
+
+        // Return the updated user object
+        return user;
     }
+
+
+
 
 
 
@@ -195,7 +212,7 @@ public class ActiveDirectoryService {
             user.setSamAccountName(getAttributeValue(attrs, "sAMAccountName"));
             user.setDistinguishedName(getAttributeValue(attrs, "distinguishedName"));
             user.setUserPrincipalName(getAttributeValue(attrs, "userPrincipalName"));
-            user.setuserAccountControl(getAttributeValue(attrs, "userAccountControl"));
+            user.setUserAccountControl(getAttributeValue(attrs, "userAccountControl"));
 
             // Convert objectGUID to UUID
             byte[] objectGUIDBytes = attrs.get("objectGUID") != null ? (byte[]) attrs.get("objectGUID").get() : null;
