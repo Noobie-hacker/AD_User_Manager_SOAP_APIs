@@ -131,6 +131,8 @@ public class ActiveDirectoryEndpoint {
         } catch (Exception e) {
             response.setStatus("Failed to add user to groups: " + e.getMessage());
         }
+        System.out.println("Response Status: " + response.getStatus());
+
         return response;
     }
 

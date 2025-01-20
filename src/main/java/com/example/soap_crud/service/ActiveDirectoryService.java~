@@ -183,7 +183,7 @@ public class ActiveDirectoryService {
             );
         }
     }
-
+    
 
     public void removeUserFromGroups(String cn, List<String> groupDns) {
         String userDn = "cn=" + cn + ",cn=Users,dc=mylab,dc=local";
