@@ -49,6 +49,7 @@ public class ActiveDirectoryEndpoint {
     @ResponsePayload
     public UpdateUserResponse updateUser(@RequestPayload UpdateUserRequest request) {
         UpdateUserResponse response = new UpdateUserResponse();
+        UpdateUserResponse.UpdatedUser updatedUser = new UpdateUserResponse.UpdatedUser();
 
         try {
             // Create User object from request data
@@ -58,10 +59,17 @@ public class ActiveDirectoryEndpoint {
             user.setLastName(request.getLastName());
             user.setEmail(request.getEmail());
 
-            // Call the updated service method for updating user
-            adService.updateUser(user);
+            // Call the service method to update the user
+            User updated = adService.updateUser(user);
 
-            // Set the status message in the response
+            // Populate the response's updatedUser field
+            updatedUser.setCn(updated.getCn());
+            updatedUser.setFirstName(updated.getFirstName());
+            updatedUser.setLastName(updated.getLastName());
+            updatedUser.setEmail(updated.getEmail());
+            response.setUpdatedUser(updatedUser);
+
+            // Set the status message
             response.setStatus("User updated successfully.");
         } catch (Exception e) {
             e.printStackTrace(); // Log the error for debugging
@@ -70,6 +78,8 @@ public class ActiveDirectoryEndpoint {
 
         return response;
     }
+
+
 
 
 

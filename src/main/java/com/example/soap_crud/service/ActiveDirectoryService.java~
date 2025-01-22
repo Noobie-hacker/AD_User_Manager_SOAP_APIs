@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 
 import javax.naming.NamingException;
 import javax.naming.directory.*;
-import javax.naming.ldap.LdapContext;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,62 +25,53 @@ public class ActiveDirectoryService {
         return ldapTemplate.search(baseDn, "(objectClass=user)", new UserAttributesMapper());
     }
 
-
     public User getUserDetailsByCn(String cn) {
-        String baseDn = "cn=Users,dc=mylab,dc=local"; // Add base DN for search scope
-        List<User> users = ldapTemplate.search(baseDn, "(cn=" + cn + ")", new UserAttributesMapper());
+        String baseDn = "cn=Users,dc=mylab,dc=local";
+        List<User> users = ldapTemplate.search(baseDn, "(cn=" + escapeXml(cn) + ")", new UserAttributesMapper());
         return users.isEmpty() ? null : users.get(0);
     }
 
-
     public String createUser(User user) {
         try {
-            String userDn = "cn=" + user.getCn() + ",cn=Users,dc=mylab,dc=local";
+            String userDn = "cn=" + escapeXml(user.getCn()) + ",cn=Users,dc=mylab,dc=local";
             DirContextAdapter context = new DirContextAdapter(userDn);
             context.setAttributeValues("objectClass", new String[]{"top", "person", "organizationalPerson", "user"});
-            context.setAttributeValue("cn", user.getCn());
-            context.setAttributeValue("sAMAccountName", user.getSamAccountName());
-            context.setAttributeValue("givenName", user.getFirstName());
-            context.setAttributeValue("sn", user.getLastName());
-            context.setAttributeValue("userPrincipalName", user.getUserPrincipalName());
-            context.setAttributeValue("mail", user.getEmail());
+            context.setAttributeValue("cn", escapeXml(user.getCn()));
+            context.setAttributeValue("sAMAccountName", escapeXml(user.getSamAccountName()));
+            context.setAttributeValue("givenName", escapeXml(user.getFirstName()));
+            context.setAttributeValue("sn", escapeXml(user.getLastName()));
+            context.setAttributeValue("userPrincipalName", escapeXml(user.getUserPrincipalName()));
+            context.setAttributeValue("mail", escapeXml(user.getEmail()));
 
-            // Set the password
             String quotedPassword = "\"" + user.getPassword() + "\"";
             byte[] passwordBytes = quotedPassword.getBytes(StandardCharsets.UTF_16LE);
             context.setAttributeValue("unicodePwd", passwordBytes);
 
-            // Set account control (normal account)
             context.setAttributeValue("userAccountControl", "512");
 
             ldapTemplate.bind(userDn, context, null);
-            return "true"; // Return "true" on success
+            return "true";
         } catch (Exception e) {
             e.printStackTrace();
-            return "false"; // Return "false" on failure
+            return "false";
         }
     }
 
-
-
-
     public User updateUser(User user) {
-        String userDn = "cn=" + user.getCn() + ",cn=Users,dc=mylab,dc=local";
+        String userDn = "cn=" + escapeXml(user.getCn()) + ",cn=Users,dc=mylab,dc=local";
 
         List<ModificationItem> modsList = new ArrayList<>();
 
-        // Add modifications only for non-null fields
         if (user.getFirstName() != null) {
-            modsList.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("givenName", user.getFirstName())));
+            modsList.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("givenName", escapeXml(user.getFirstName()))));
         }
         if (user.getLastName() != null) {
-            modsList.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("sn", user.getLastName())));
+            modsList.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("sn", escapeXml(user.getLastName()))));
         }
         if (user.getEmail() != null) {
-            modsList.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("mail", user.getEmail())));
+            modsList.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("mail", escapeXml(user.getEmail()))));
         }
 
-        // Check if there's any attribute to modify
         if (!modsList.isEmpty()) {
             ModificationItem[] mods = modsList.toArray(new ModificationItem[0]);
             ldapTemplate.modifyAttributes(userDn, mods);
@@ -89,49 +79,65 @@ public class ActiveDirectoryService {
             System.out.println("No attributes provided for update. Existing attributes remain unchanged.");
         }
 
-        // Return the updated user object
-        return user;
+        // Retrieve updated user details
+        User updatedUser = new User();
+        updatedUser.setCn(user.getCn());
+        updatedUser.setFirstName(getAttributeValue(userDn, "givenName"));
+        updatedUser.setLastName(getAttributeValue(userDn, "sn"));
+        updatedUser.setEmail(getAttributeValue(userDn, "mail"));
+
+        return updatedUser;
     }
 
-
-
-
+    // Helper method to fetch an attribute value from the directory
+    private String getAttributeValue(String userDn, String attributeName) {
+        try {
+            Attributes attributes = ldapTemplate.lookup(userDn, new String[]{attributeName});
+            if (attributes != null) {
+                Attribute attribute = attributes.get(attributeName);
+                return attribute != null ? (String) attribute.get() : null;
+            }
+        } catch (Exception e) {
+            System.out.println("Error retrieving attribute " + attributeName + " for DN " + userDn + ": " + e.getMessage());
+        }
+        return null;
+    }
 
 
     public String deleteUserByCn(String cn) {
         try {
-            ldapTemplate.unbind("cn=" + cn + ",cn=Users,dc=mylab,dc=local");
-            return "true"; // Return "true" on success
+            ldapTemplate.unbind("cn=" + escapeXml(cn) + ",cn=Users,dc=mylab,dc=local");
+            return "true";
         } catch (Exception e) {
-            return "false"; // Return "false" on failure
+            return "false";
         }
     }
 
     public String enableUserByCn(String cn) {
-        return setUserAccountControl(cn, 512); // Enable user account
+        return setUserAccountControl(cn, 512);
     }
 
     public String disableUserByCn(String cn) {
-        return setUserAccountControl(cn, 514); // Disable user account
+        return setUserAccountControl(cn, 514);
     }
 
     private String setUserAccountControl(String cn, int controlValue) {
         try {
-            DirContextOperations context = ldapTemplate.lookupContext("cn=" + cn + ",cn=Users,dc=mylab,dc=local");
+            DirContextOperations context = ldapTemplate.lookupContext("cn=" + escapeXml(cn) + ",cn=Users,dc=mylab,dc=local");
             context.setAttributeValue("userAccountControl", String.valueOf(controlValue));
             ldapTemplate.modifyAttributes(context);
-            return "true"; // Ensure "true" is returned on success
+            return "true";
         } catch (Exception e) {
-            return "false"; // Ensure "false" is returned on failure
+            return "false";
         }
     }
 
     public List<GroupInfo> getAllGroups() {
-        String baseDn = "cn=Users,dc=mylab,dc=local"; // Add base DN for search scope
+        String baseDn = "cn=Users,dc=mylab,dc=local";
         try {
             return ldapTemplate.search(baseDn, "(objectClass=group)", (AttributesMapper<GroupInfo>) attrs -> {
-                String groupName = (String) attrs.get("cn").get();
-                String groupDn = (String) attrs.get("distinguishedName").get();
+                String groupName = escapeXml((String) attrs.get("cn").get());
+                String groupDn = escapeXml((String) attrs.get("distinguishedName").get());
                 return new GroupInfo(groupName, groupDn);
             });
         } catch (Exception e) {
@@ -140,66 +146,31 @@ public class ActiveDirectoryService {
         }
     }
 
-    public static class GroupInfo {
-        private String groupName;
-        private String groupDn;
-
-        public GroupInfo(String groupName, String groupDn) {
-            this.groupName = groupName;
-            this.groupDn = groupDn;
-        }
-
-        // Getters and setters (if needed)
-
-        public String getGroupName() {
-            return groupName;
-        }
-
-        public void setGroupName(String groupName) {
-            this.groupName = groupName;
-        }
-
-        public String getGroupDn() {
-            return groupDn;
-        }
-
-        public void setGroupDn(String groupDn) {
-            this.groupDn = groupDn;
-        }
-    }
-
-
-
-
     public void addUserToGroups(String cn, List<String> groupDns) {
-        String userDn = "cn=" + cn + ",cn=Users,dc=mylab,dc=local";
+        String userDn = "cn=" + escapeXml(cn) + ",cn=Users,dc=mylab,dc=local";
 
         for (String groupDn : groupDns) {
             ldapTemplate.modifyAttributes(
-                    groupDn,
+                    escapeXml(groupDn),
                     new ModificationItem[]{
-                            new ModificationItem(DirContext.ADD_ATTRIBUTE, new BasicAttribute("member", userDn))
+                            new ModificationItem(DirContext.ADD_ATTRIBUTE, new BasicAttribute("member", escapeXml(userDn)))
                     }
             );
         }
     }
-    
 
     public void removeUserFromGroups(String cn, List<String> groupDns) {
-        String userDn = "cn=" + cn + ",cn=Users,dc=mylab,dc=local";
+        String userDn = "cn=" + escapeXml(cn) + ",cn=Users,dc=mylab,dc=local";
 
         for (String groupDn : groupDns) {
             ldapTemplate.modifyAttributes(
-                    groupDn,
+                    escapeXml(groupDn),
                     new ModificationItem[]{
-                            new ModificationItem(DirContext.REMOVE_ATTRIBUTE, new BasicAttribute("member", userDn))
+                            new ModificationItem(DirContext.REMOVE_ATTRIBUTE, new BasicAttribute("member", escapeXml(userDn)))
                     }
             );
         }
     }
-
-
-
 
     private static class UserAttributesMapper implements AttributesMapper<User> {
         @Override
@@ -212,7 +183,6 @@ public class ActiveDirectoryService {
             user.setUserPrincipalName(getAttributeValue(attrs, "userPrincipalName"));
             user.setUserAccountControl(getAttributeValue(attrs, "userAccountControl"));
 
-            // Convert objectGUID to UUID
             byte[] objectGUIDBytes = attrs.get("objectGUID") != null ? (byte[]) attrs.get("objectGUID").get() : null;
             user.setObjectGUID(convertObjectGUIDToUUID(objectGUIDBytes));
 
@@ -244,6 +214,51 @@ public class ActiveDirectoryService {
                     objectGUID[7], objectGUID[6],
                     objectGUID[8], objectGUID[9],
                     objectGUID[10], objectGUID[11], objectGUID[12], objectGUID[13], objectGUID[14], objectGUID[15]);
+        }
+    }
+
+    private static String escapeXml(String input) {
+        if (input == null) {
+            return null;
+        }
+        return input.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&apos;")
+                .replace(",", "&comma;")
+                .replace("\\", "&bsol;")
+                .replace("#", "&#35;")
+                .replace("+", "&#43;")
+                .replace("=", "&#61;")
+                .replace(";", "&#59;");
+    }
+
+
+
+    public static class GroupInfo {
+        private String groupName;
+        private String groupDn;
+
+        public GroupInfo(String groupName, String groupDn) {
+            this.groupName = groupName;
+            this.groupDn = groupDn;
+        }
+
+        public String getGroupName() {
+            return groupName;
+        }
+
+        public void setGroupName(String groupName) {
+            this.groupName = groupName;
+        }
+
+        public String getGroupDn() {
+            return groupDn;
+        }
+
+        public void setGroupDn(String groupDn) {
+            this.groupDn = groupDn;
         }
     }
 }

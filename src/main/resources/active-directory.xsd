@@ -56,9 +56,9 @@
         <xs:complexType>
             <xs:sequence>
                 <xs:element name="cn" type="xs:string" />
-                <xs:element name="firstName" type="xs:string" />
-                <xs:element name="lastName" type="xs:string" />
-                <xs:element name="email" type="xs:string" />
+                <xs:element name="firstName" type="xs:string" minOccurs="0" />
+                <xs:element name="lastName" type="xs:string" minOccurs="0" />
+                <xs:element name="email" type="xs:string" minOccurs="0" />
             </xs:sequence>
         </xs:complexType>
     </xs:element>
@@ -67,9 +67,20 @@
         <xs:complexType>
             <xs:sequence>
                 <xs:element name="status" type="xs:string" />
+                <xs:element name="updatedUser">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="cn" type="xs:string" />
+                            <xs:element name="firstName" type="xs:string" minOccurs="0" />
+                            <xs:element name="lastName" type="xs:string" minOccurs="0" />
+                            <xs:element name="email" type="xs:string" minOccurs="0" />
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
             </xs:sequence>
         </xs:complexType>
     </xs:element>
+
 
     <xs:element name="deleteUserRequest">
         <xs:complexType>

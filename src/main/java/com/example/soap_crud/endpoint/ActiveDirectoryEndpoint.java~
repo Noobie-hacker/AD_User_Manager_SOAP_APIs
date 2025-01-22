@@ -58,11 +58,17 @@ public class ActiveDirectoryEndpoint {
             user.setLastName(request.getLastName());
             user.setEmail(request.getEmail());
 
-            // Call the updated service method for updating user
-            adService.updateUser(user);
+            // Call the updated service method for updating the user and retrieve updated details
+            User updatedUser = adService.updateUser(user);
 
             // Set the status message in the response
             response.setStatus("User updated successfully.");
+
+            // Populate updated user details in the response
+            response.setCn(updatedUser.getCn());
+            response.setFirstName(updatedUser.getFirstName());
+            response.setLastName(updatedUser.getLastName());
+            response.setEmail(updatedUser.getEmail());
         } catch (Exception e) {
             e.printStackTrace(); // Log the error for debugging
             response.setStatus("Failed to update user: " + e.getMessage());
@@ -70,6 +76,7 @@ public class ActiveDirectoryEndpoint {
 
         return response;
     }
+
 
 
 
@@ -127,7 +134,7 @@ public class ActiveDirectoryEndpoint {
         AddUserToGroupsResponse response = new AddUserToGroupsResponse();
         try {
             adService.addUserToGroups(request.getCn(), request.getGroups());
-            response.setStatus("Success");
+            response.setStatus("User added to groups successfully.");
         } catch (Exception e) {
             response.setStatus("Failed to add user to groups: " + e.getMessage());
         }
