@@ -40,10 +40,42 @@ public class ActiveDirectoryEndpoint {
     @ResponsePayload
     public CreateUserResponse createUser(@RequestPayload CreateUserRequest request) {
         CreateUserResponse response = new CreateUserResponse();
-        boolean success = Boolean.parseBoolean(adService.createUser(request.getUser()));
-        response.setStatus(success ? "User created successfully." : "Failed to create user.");
+
+        try {
+            // Extract user details from request
+            User requestUser = request.getUser();
+
+            // Create a new User object to be passed to the service
+            User user = new User();
+            user.setCn(requestUser.getCn());
+            user.setSamAccountName(requestUser.getSamAccountName());
+            user.setDistinguishedName(requestUser.getDistinguishedName());
+            user.setUserPrincipalName(requestUser.getUserPrincipalName());
+            user.setObjectGUID(requestUser.getObjectGUID());
+            user.setFirstName(requestUser.getFirstName());
+            user.setLastName(requestUser.getLastName());
+            user.setEmail(requestUser.getEmail());
+            user.setPassword(requestUser.getPassword());
+            //user.setMemberOf(requestUser.getMemberOf());
+            user.setUserAccountControl(requestUser.getUserAccountControl());
+
+            // Call the service to create the user in Active Directory
+            User createdUser = adService.createUser(user);
+
+            // Set the created user details in the response
+            response.setCreatedUser(createdUser);
+
+            // Set status message
+            response.setStatus("User created successfully.");
+        } catch (Exception e) {
+            e.printStackTrace(); // Log the error for debugging
+            response.setStatus("Failed to create user: " + e.getMessage());
+        }
+
         return response;
     }
+
+
 
     @PayloadRoot(namespace = NAMESPACE_URI, localPart = "updateUserRequest")
     @ResponsePayload

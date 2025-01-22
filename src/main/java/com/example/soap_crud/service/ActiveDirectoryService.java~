@@ -31,10 +31,12 @@ public class ActiveDirectoryService {
         return users.isEmpty() ? null : users.get(0);
     }
 
-    public String createUser(User user) {
+    public User createUser(User user) {
         try {
             String userDn = "cn=" + escapeXml(user.getCn()) + ",cn=Users,dc=mylab,dc=local";
             DirContextAdapter context = new DirContextAdapter(userDn);
+
+            // Set required attributes for AD user creation
             context.setAttributeValues("objectClass", new String[]{"top", "person", "organizationalPerson", "user"});
             context.setAttributeValue("cn", escapeXml(user.getCn()));
             context.setAttributeValue("sAMAccountName", escapeXml(user.getSamAccountName()));
@@ -43,17 +45,25 @@ public class ActiveDirectoryService {
             context.setAttributeValue("userPrincipalName", escapeXml(user.getUserPrincipalName()));
             context.setAttributeValue("mail", escapeXml(user.getEmail()));
 
+            // Set the password (encoded as UTF-16LE for AD)
             String quotedPassword = "\"" + user.getPassword() + "\"";
             byte[] passwordBytes = quotedPassword.getBytes(StandardCharsets.UTF_16LE);
             context.setAttributeValue("unicodePwd", passwordBytes);
 
+            // Enable the account (512 = NORMAL_ACCOUNT)
             context.setAttributeValue("userAccountControl", "512");
 
+            // Bind the user to Active Directory
             ldapTemplate.bind(userDn, context, null);
-            return "true";
+
+            // Populate the `distinguishedName` and `objectGUID` fields
+            user.setDistinguishedName(userDn);
+            user.setObjectGUID(fetchObjectGUID(userDn));
+
+            return user;
         } catch (Exception e) {
             e.printStackTrace();
-            return "false";
+            throw new RuntimeException("Failed to create user: " + e.getMessage(), e);
         }
     }
 
@@ -79,29 +89,10 @@ public class ActiveDirectoryService {
             System.out.println("No attributes provided for update. Existing attributes remain unchanged.");
         }
 
-        // Retrieve updated user details
-        User updatedUser = new User();
-        updatedUser.setCn(user.getCn());
-        updatedUser.setFirstName(getAttributeValue(userDn, "givenName"));
-        updatedUser.setLastName(getAttributeValue(userDn, "sn"));
-        updatedUser.setEmail(getAttributeValue(userDn, "mail"));
-
-        return updatedUser;
+        // Return the updated user
+        return user;
     }
 
-    // Helper method to fetch an attribute value from the directory
-    private String getAttributeValue(String userDn, String attributeName) {
-        try {
-            Attributes attributes = ldapTemplate.lookup(userDn, new String[]{attributeName});
-            if (attributes != null) {
-                Attribute attribute = attributes.get(attributeName);
-                return attribute != null ? (String) attribute.get() : null;
-            }
-        } catch (Exception e) {
-            System.out.println("Error retrieving attribute " + attributeName + " for DN " + userDn + ": " + e.getMessage());
-        }
-        return null;
-    }
 
 
     public String deleteUserByCn(String cn) {

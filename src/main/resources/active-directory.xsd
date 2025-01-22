@@ -47,6 +47,7 @@
         <xs:complexType>
             <xs:sequence>
                 <xs:element name="status" type="xs:string" />
+                <xs:element name="createdUser" type="tns:user" />
             </xs:sequence>
         </xs:complexType>
     </xs:element>

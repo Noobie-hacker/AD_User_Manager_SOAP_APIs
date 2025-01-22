@@ -40,15 +40,55 @@ public class ActiveDirectoryEndpoint {
     @ResponsePayload
     public CreateUserResponse createUser(@RequestPayload CreateUserRequest request) {
         CreateUserResponse response = new CreateUserResponse();
-        boolean success = Boolean.parseBoolean(adService.createUser(request.getUser()));
-        response.setStatus(success ? "User created successfully." : "Failed to create user.");
+
+        try {
+            // Extract user details from request
+            User user = new User();
+            user.setCn(request.getUser().getCn());
+            user.setSamAccountName(request.getUser().getSamAccountName());
+            user.setDistinguishedName(request.getUser().getDistinguishedName());
+            user.setUserPrincipalName(request.getUser().getUserPrincipalName());
+            user.setObjectGUID(request.getUser().getObjectGUID());
+            user.setFirstName(request.getUser().getFirstName());
+            user.setLastName(request.getUser().getLastName());
+            user.setEmail(request.getUser().getEmail());
+            user.setPassword(request.getUser().getPassword());
+            user.setMemberOf(request.getUser().getMemberOf());
+            user.setUserAccountControl(request.getUser().getUserAccountControl());
+
+            // Call the service method to create the user
+            User createdUser = adService.createUser(user);
+
+            // Populate response with created user details
+            CreateUserResponse.CreatedUser responseUser = new CreateUserResponse.CreatedUser();
+            responseUser.setCn(createdUser.getCn());
+            responseUser.setSamAccountName(createdUser.getSamAccountName());
+            responseUser.setDistinguishedName(createdUser.getDistinguishedName());
+            responseUser.setUserPrincipalName(createdUser.getUserPrincipalName());
+            responseUser.setObjectGUID(createdUser.getObjectGUID());
+            responseUser.setFirstName(createdUser.getFirstName());
+            responseUser.setLastName(createdUser.getLastName());
+            responseUser.setEmail(createdUser.getEmail());
+            //responseUser.setMemberOf(createdUser.getMemberOf());
+            responseUser.setUserAccountControl(createdUser.getUserAccountControl());
+            response.setCreatedUser(responseUser);
+
+            // Set status message
+            response.setStatus("User created successfully.");
+        } catch (Exception e) {
+            e.printStackTrace(); // Log the error for debugging
+            response.setStatus("Failed to create user: " + e.getMessage());
+        }
+
         return response;
     }
+
 
     @PayloadRoot(namespace = NAMESPACE_URI, localPart = "updateUserRequest")
     @ResponsePayload
     public UpdateUserResponse updateUser(@RequestPayload UpdateUserRequest request) {
         UpdateUserResponse response = new UpdateUserResponse();
+        UpdateUserResponse.UpdatedUser updatedUser = new UpdateUserResponse.UpdatedUser();
 
         try {
             // Create User object from request data
@@ -58,17 +98,18 @@ public class ActiveDirectoryEndpoint {
             user.setLastName(request.getLastName());
             user.setEmail(request.getEmail());
 
-            // Call the updated service method for updating the user and retrieve updated details
-            User updatedUser = adService.updateUser(user);
+            // Call the service method to update the user
+            User updated = adService.updateUser(user);
 
-            // Set the status message in the response
+            // Populate the response's updatedUser field
+            updatedUser.setCn(updated.getCn());
+            updatedUser.setFirstName(updated.getFirstName());
+            updatedUser.setLastName(updated.getLastName());
+            updatedUser.setEmail(updated.getEmail());
+            response.setUpdatedUser(updatedUser);
+
+            // Set the status message
             response.setStatus("User updated successfully.");
-
-            // Populate updated user details in the response
-            response.setCn(updatedUser.getCn());
-            response.setFirstName(updatedUser.getFirstName());
-            response.setLastName(updatedUser.getLastName());
-            response.setEmail(updatedUser.getEmail());
         } catch (Exception e) {
             e.printStackTrace(); // Log the error for debugging
             response.setStatus("Failed to update user: " + e.getMessage());
@@ -76,6 +117,7 @@ public class ActiveDirectoryEndpoint {
 
         return response;
     }
+
 
 
 

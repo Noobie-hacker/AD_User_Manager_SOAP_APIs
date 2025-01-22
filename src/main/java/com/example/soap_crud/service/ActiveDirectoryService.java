@@ -31,10 +31,12 @@ public class ActiveDirectoryService {
         return users.isEmpty() ? null : users.get(0);
     }
 
-    public String createUser(User user) {
+    public User createUser(User user) {
         try {
             String userDn = "cn=" + escapeXml(user.getCn()) + ",cn=Users,dc=mylab,dc=local";
             DirContextAdapter context = new DirContextAdapter(userDn);
+
+            // Set required attributes for AD user creation
             context.setAttributeValues("objectClass", new String[]{"top", "person", "organizationalPerson", "user"});
             context.setAttributeValue("cn", escapeXml(user.getCn()));
             context.setAttributeValue("sAMAccountName", escapeXml(user.getSamAccountName()));
@@ -43,19 +45,25 @@ public class ActiveDirectoryService {
             context.setAttributeValue("userPrincipalName", escapeXml(user.getUserPrincipalName()));
             context.setAttributeValue("mail", escapeXml(user.getEmail()));
 
+            // Set the password (encoded as UTF-16LE for AD)
             String quotedPassword = "\"" + user.getPassword() + "\"";
             byte[] passwordBytes = quotedPassword.getBytes(StandardCharsets.UTF_16LE);
             context.setAttributeValue("unicodePwd", passwordBytes);
 
+            // Enable the account (512 = NORMAL_ACCOUNT)
             context.setAttributeValue("userAccountControl", "512");
 
+            // Bind the user to Active Directory
             ldapTemplate.bind(userDn, context, null);
-            return "true";
+
+            // Fetch the newly created user's details
+            return getUserDetailsByCn(user.getCn());
         } catch (Exception e) {
             e.printStackTrace();
-            return "false";
+            throw new RuntimeException("Failed to create user: " + e.getMessage(), e);
         }
     }
+
 
     public User updateUser(User user) {
         String userDn = "cn=" + escapeXml(user.getCn()) + ",cn=Users,dc=mylab,dc=local";
