@@ -1,0 +1,4 @@
+package com.example.adservice;
+
+public class GetAllUsersRequest {
+}

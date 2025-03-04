@@ -1,0 +1,42 @@
+package com.example.soap_crud;
+
+import com.example.adservice.GetAllUsersResponse;
+import com.example.adservice.GetUserDetailsRequest;
+import com.example.adservice.GetUserDetailsResponse;
+import com.example.adservice.User;
+import org.springframework.ws.server.endpoint.annotation.Endpoint;
+import org.springframework.ws.server.endpoint.annotation.PayloadRoot;
+import org.springframework.ws.server.endpoint.annotation.RequestPayload;
+import org.springframework.ws.server.endpoint.annotation.ResponsePayload;
+
+import java.util.List;
+
+@Endpoint
+public class ActiveDirectoryEndpoint {
+
+    private static final String NAMESPACE_URI = "http://example.com/adservice";
+
+    private final ActiveDirectoryService adService;
+
+    public ActiveDirectoryEndpoint(ActiveDirectoryService adService) {
+        this.adService = adService;
+    }
+
+    @PayloadRoot(namespace = NAMESPACE_URI, localPart = "getAllUsersRequest")
+    @ResponsePayload
+    public GetAllUsersResponse getAllUsers() {
+        GetAllUsersResponse response = new GetAllUsersResponse();
+        List<User> users = adService.getAllUsers();
+        response.getUsers().addAll(users);
+        return response;
+    }
+
+    @PayloadRoot(namespace = NAMESPACE_URI, localPart = "getUserDetailsRequest")
+    @ResponsePayload
+    public GetUserDetailsResponse getUserDetails(@RequestPayload GetUserDetailsRequest request) {
+        GetUserDetailsResponse response = new GetUserDetailsResponse();
+        User user = adService.getUserDetails(request.getSamAccountName());
+        response.setUser(user);
+        return response;
+    }
+}

@@ -1,0 +1,4 @@
+package com.example.soap_crud.service;
+
+public class AuthDebugService {
+}

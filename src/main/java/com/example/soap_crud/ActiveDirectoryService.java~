@@ -1,0 +1,52 @@
+package com.example.soap_crud;
+
+import com.example.adservice.User;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.ldap.core.AttributesMapper;
+import org.springframework.ldap.core.LdapTemplate;
+import org.springframework.stereotype.Service;
+
+import javax.naming.NamingException;
+import javax.naming.directory.Attributes;
+import java.util.List;
+
+@Service
+public class ActiveDirectoryService {
+
+    private final LdapTemplate ldapTemplate;
+
+    @Autowired
+    public ActiveDirectoryService(LdapTemplate ldapTemplate) {
+        if (ldapTemplate == null) {
+            throw new IllegalArgumentException("LdapTemplate must not be null!");
+        }
+        this.ldapTemplate = ldapTemplate;
+    }
+
+    public List<User> getAllUsers() {
+        return ldapTemplate.search("", "(objectClass=user)", new UserAttributesMapper());
+    }
+
+    public User getUserDetails(String samAccountName) {
+        List<User> users = ldapTemplate.search("", "(samAccountName=" + samAccountName + ")", new UserAttributesMapper());
+        return users.isEmpty() ? null : users.get(0);
+    }
+
+    private static class UserAttributesMapper implements AttributesMapper<User> {
+        @Override
+        public User mapFromAttributes(Attributes attrs) throws NamingException {
+            User user = new User();
+            user.setSamAccountName((String) attrs.get("sAMAccountName").get());
+            user.setDistinguishedName((String) attrs.get("distinguishedName").get());
+            user.setUserPrincipalName((String) attrs.get("userPrincipalName").get());
+            user.setObjectGUID(attrs.get("objectGUID").get().toString());
+            user.setFirstName(attrs.get("givenName") != null ? (String) attrs.get("givenName").get() : "");
+            user.setLastName(attrs.get("sn") != null ? (String) attrs.get("sn").get() : "");
+            user.setEmail(attrs.get("mail") != null ? (String) attrs.get("mail").get() : "");
+            if (attrs.get("memberOf") != null) {
+                user.getMemberOf().add(attrs.get("memberOf").get().toString());
+            }
+            return user;
+        }
+    }
+}
